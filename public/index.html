@@ -25,8 +25,18 @@
             <button id="logout-btn">Logout</button>
         </div>
         
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search messages..." autocomplete="off">
+                <button id="search-btn">Search</button>
+                <button id="clear-search-btn" class="hidden">Clear</button>
+            </div>
+            <div id="search-results-info" class="search-info hidden"></div>
+        </div>
+        
         <div class="messages-container">
             <div id="messages"></div>
+            <div id="search-results" class="search-results hidden"></div>
         </div>
         
         <div class="input-container">
