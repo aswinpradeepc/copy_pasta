@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="login-container" class="container">
+        <div class="login-card">
+            <h2>Login to Chat</h2>
+            <form id="login-form">
+                <input type="password" id="password" placeholder="Enter password" required>
+                <button type="submit">Login</button>
+            </form>
+            <div id="login-error" class="error"></div>
+        </div>
+    </div>
+
+    <div id="chat-container" class="container hidden">
+        <div class="chat-header">
+            <h2>Simple Chat</h2>
+            <div class="device-info" id="device-info"></div>
+            <button id="logout-btn">Logout</button>
+        </div>
+        
+        <div class="messages-container">
+            <div id="messages"></div>
+        </div>
+        
+        <div class="input-container">
+            <form id="message-form">
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
