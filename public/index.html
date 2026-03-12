@@ -41,9 +41,14 @@
         
         <div class="input-container">
             <form id="message-form">
-                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
-                <button type="submit">Send</button>
+                <div class="input-wrapper">
+                    <button type="button" id="file-btn" class="input-action-btn" title="Attach file">📎</button>
+                    <textarea id="message-input" placeholder="Type a message..." autocomplete="off" rows="1"></textarea>
+                    <button type="submit" id="send-btn" class="input-action-btn" title="Send message">➤</button>
+                </div>
+                <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.doc,.docx,.zip" style="display: none;">
             </form>
+            <div id="file-preview" class="file-preview hidden"></div>
         </div>
     </div>
 

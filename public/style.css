@@ -303,40 +303,228 @@ body {
 
 #message-form {
     display: flex;
+    flex-direction: column;
     gap: 0.5rem;
+}
+
+.input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 24px;
+    padding: 0.5rem;
+    transition: border-color 0.3s ease;
+}
+
+.input-wrapper:focus-within {
+    border-color: #007acc;
+}
+
+.input-action-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #999;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.input-action-btn:hover {
+    background: #404040;
+    color: #e0e0e0;
+}
+
+#send-btn {
+    background: #007acc;
+    color: white;
+}
+
+#send-btn:hover {
+    background: #005a9e;
 }
 
 #message-input {
     flex: 1;
-    padding: 0.75rem;
-    border: 1px solid #404040;
-    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 18px;
     font-size: 1rem;
-    background: #3d3d3d;
+    background: transparent;
     color: #e0e0e0;
-    transition: border-color 0.3s ease;
+    resize: none;
+    min-height: 32px;
+    max-height: 120px;
+    font-family: inherit;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    outline: none;
 }
 
-#message-input:focus {
-    outline: none;
+#message-input::placeholder {
+    color: #999;
+}
+
+.file-preview {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #3d3d3d;
+    border-radius: 6px;
+    border: 1px solid #404040;
+}
+
+.file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem;
+    background: #2d2d2d;
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.file-preview-item:last-child {
+    margin-bottom: 0;
+}
+
+.file-preview-info {
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.file-preview-name {
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.file-preview-size {
+    color: #999;
+    font-size: 0.75rem;
+}
+
+.file-remove-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.message-files {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.message-file {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #3d3d3d;
+    border-radius: 8px;
+    border: 1px solid #555;
+    transition: all 0.3s ease;
+}
+
+.message-file:hover {
+    background: #454545;
     border-color: #007acc;
 }
 
-#message-form button {
-    background: #007acc;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+.message-image {
+    flex-direction: column;
+    align-items: flex-start;
 }
 
-#message-form button:hover {
-    background: #005a9e;
+.message-document {
+    flex-direction: row;
 }
+
+.file-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 0.5rem;
+}
+
+.file-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: #e0e0e0;
+    flex: 1;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.file-link:hover {
+    background: #404040;
+}
+
+.file-icon {
+    font-size: 1.5rem;
+    min-width: 2rem;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 600;
+    color: #e0e0e0;
+    word-break: break-word;
+    font-size: 0.9rem;
+}
+
+.file-size {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 0.25rem;
+}
+
+.message-image img {
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.download-btn {
+    display: inline-block;
+    background: #007acc;
+    color: white;
+    text-decoration: none;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    transition: background-color 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.download-btn:hover {
+    background: #005a9e;
+    transform: translateY(-1px);
+}
+
 
 @keyframes slideIn {
     from {
@@ -366,7 +554,7 @@ body {
     }
     
     .messages-container {
-        padding: 0.75rem;
+        padding: 0.5rem;
     }
     
     .message {
@@ -374,15 +562,42 @@ body {
     }
     
     .input-container {
-        padding: 0.75rem;
+        padding: 0.5rem;
     }
     
-    #message-form {
-        flex-direction: column;
+    .input-wrapper {
+        padding: 0.4rem;
     }
     
-    #message-form button {
-        width: 100%;
+    .input-action-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    
+    #message-input {
+        font-size: 0.9rem;
+        min-height: 28px;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .file-preview {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    .message-file {
+        padding: 0.4rem;
+    }
+    
+    .message-image img {
+        max-width: 150px;
+        max-height: 150px;
+    }
+    
+    .file-icon {
+        font-size: 1.2rem;
+        min-width: 1.5rem;
     }
 }
 
@@ -397,15 +612,56 @@ body {
     }
     
     .messages-container {
-        padding: 0.5rem;
+        padding: 0.4rem;
     }
     
     .input-container {
-        padding: 0.5rem;
+        padding: 0.4rem;
     }
     
     .message {
-        padding: 0.5rem;
+        padding: 0.4rem 0.5rem;
+    }
+    
+    .input-wrapper {
+        padding: 0.3rem;
+        border-radius: 20px;
+    }
+    
+    .input-action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    #message-input {
+        font-size: 0.85rem;
+        min-height: 24px;
+        padding: 0.3rem 0.5rem;
+        border-radius: 16px;
+    }
+    
+    .message-image img {
+        max-width: 120px;
+        max-height: 120px;
+    }
+    
+    .file-icon {
+        font-size: 1rem;
+        min-width: 1.2rem;
+    }
+    
+    .file-name {
+        font-size: 0.8rem;
+    }
+    
+    .file-size {
+        font-size: 0.7rem;
+    }
+    
+    .download-btn {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
     }
 }
 

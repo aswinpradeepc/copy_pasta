@@ -2,6 +2,7 @@ class ChatApp {
     constructor() {
         this.socket = null;
         this.deviceId = this.generateDeviceId();
+        this.selectedFiles = [];
         this.init();
     }
 
@@ -55,9 +56,36 @@ class ChatApp {
             });
         }
 
-        // Message input auto-focus
+        // File upload button
+        const fileBtn = document.getElementById('file-btn');
+        const fileInput = document.getElementById('file-input');
+        
+        if (fileBtn && fileInput) {
+            fileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                this.handleFileSelect(e.target.files);
+            });
+            
+            // Add touch support for mobile
+            fileBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                fileInput.click();
+            });
+        }
+
+        // Message input auto-focus and auto-resize
         const messageInput = document.getElementById('message-input');
         if (messageInput) {
+            // Auto-resize textarea based on content
+            messageInput.addEventListener('input', () => {
+                messageInput.style.height = 'auto';
+                messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+            });
+            
             messageInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -184,6 +212,12 @@ class ChatApp {
         const input = document.getElementById('message-input');
         const text = input.value.trim();
 
+        // Handle file upload if files are selected
+        if (this.selectedFiles.length > 0) {
+            await this.uploadFiles();
+            return;
+        }
+
         if (text && this.socket) {
             this.socket.emit('message', {
                 text: text,
@@ -191,8 +225,57 @@ class ChatApp {
                 timestamp: new Date().toISOString()
             });
             input.value = '';
+            // Reset textarea height
+            input.style.height = 'auto';
             input.focus();
         }
+    }
+    
+    async uploadFiles() {
+        if (this.selectedFiles.length === 0) return;
+        
+        const formData = new FormData();
+        this.selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+                // Don't set Content-Type header, let browser set it with boundary
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                
+                // Send message with file information
+                this.socket.emit('message', {
+                    text: '',
+                    deviceId: this.deviceId,
+                    timestamp: new Date().toISOString(),
+                    files: result.files
+                });
+                
+                // Clear file selection
+                this.clearFileSelection();
+            } else {
+                const error = await response.json();
+                console.error('Upload error response:', error);
+                alert('Upload failed: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Upload failed. Please try again.');
+        }
+    }
+    
+    clearFileSelection() {
+        this.selectedFiles = [];
+        const fileInput = document.getElementById('file-input');
+        fileInput.value = '';
+        document.getElementById('file-preview').classList.add('hidden');
+        document.getElementById('file-preview').innerHTML = '';
     }
 
     displayMessage(message, container = null) {
@@ -205,8 +288,24 @@ class ChatApp {
         const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const dateStr = date.toLocaleDateString();
         
+        let messageContent = '';
+        
+        // Add text content if present
+        if (message.text) {
+            messageContent += `<div class="message-text">${this.preserveWhitespace(this.escapeHtml(message.text))}</div>`;
+        }
+        
+        // Add file attachments if present
+        if (message.files && message.files.length > 0) {
+            messageContent += '<div class="message-files">';
+            message.files.forEach(file => {
+                messageContent += this.createFileElement(file);
+            });
+            messageContent += '</div>';
+        }
+        
         messageEl.innerHTML = `
-            <div class="message-text">${this.escapeHtml(message.text)}</div>
+            ${messageContent}
             <div class="message-meta">
                 <span>${dateStr} ${timeStr}</span>
                 <span class="copy-hint">Tap to copy</span>
@@ -215,6 +314,10 @@ class ChatApp {
 
         // Handle both click and touch events for mobile compatibility
         const copyHandler = (e) => {
+            // Don't trigger copy if clicking on file elements
+            if (e.target.closest('.message-files') || e.target.closest('.download-btn')) {
+                return;
+            }
             e.preventDefault();
             this.copyMessage(message.text, messageEl);
         };
@@ -343,10 +446,135 @@ class ChatApp {
         }
     }
 
+    handleFileSelect(files) {
+        const filePreview = document.getElementById('file-preview');
+        
+        // Clear previous selection
+        this.selectedFiles = [];
+        filePreview.innerHTML = '';
+        
+        if (files.length === 0) {
+            filePreview.classList.add('hidden');
+            return;
+        }
+        
+        filePreview.classList.remove('hidden');
+        
+        Array.from(files).forEach((file, index) => {
+            // Check file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+                return;
+            }
+            
+            this.selectedFiles.push(file);
+            
+            const previewItem = document.createElement('div');
+            previewItem.className = 'file-preview-item';
+            
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'file-preview-info';
+            
+            const fileName = document.createElement('div');
+            fileName.className = 'file-preview-name';
+            fileName.textContent = file.name;
+            
+            const fileSize = document.createElement('div');
+            fileSize.className = 'file-preview-size';
+            fileSize.textContent = this.formatFileSize(file.size);
+            
+            fileInfo.appendChild(fileName);
+            fileInfo.appendChild(fileSize);
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'file-remove-btn';
+            removeBtn.textContent = 'Remove';
+            removeBtn.onclick = () => this.removeFile(index);
+            
+            previewItem.appendChild(fileInfo);
+            previewItem.appendChild(removeBtn);
+            filePreview.appendChild(previewItem);
+        });
+    }
+    
+    removeFile(index) {
+        this.selectedFiles.splice(index, 1);
+        
+        // Update file input
+        const fileInput = document.getElementById('file-input');
+        const dt = new DataTransfer();
+        this.selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        
+        // Update preview
+        this.handleFileSelect(fileInput.files);
+    }
+    
+    createFileElement(file) {
+        const isImage = file.mimetype.startsWith('image/');
+        const fileUrl = file.url.startsWith('/') ? file.url : `/${file.url}`;
+        
+        if (isImage) {
+            const element = `
+                <div class="message-file message-image">
+                    <img src="${fileUrl}" alt="${file.originalName}" loading="lazy" 
+                         onclick="window.open('${fileUrl}', '_blank')" 
+                         style="max-width: 200px; max-height: 200px; border-radius: 4px; cursor: pointer;">
+                    <div class="file-info">
+                        <div class="file-name">${file.originalName}</div>
+                        <div class="file-size">${this.formatFileSize(file.size)}</div>
+                        <a href="${fileUrl}" download="${file.originalName}" class="download-btn" onclick="event.stopPropagation()">⬇ Download</a>
+                    </div>
+                </div>
+            `;
+            return element;
+        } else {
+            const icon = this.getFileIcon(file.mimetype);
+            const element = `
+                <div class="message-file message-document">
+                    <div class="file-content">
+                        <div class="file-link" onclick="window.open('${fileUrl}', '_blank')">
+                            <span class="file-icon">${icon}</span>
+                            <div class="file-info">
+                                <div class="file-name">${file.originalName}</div>
+                                <div class="file-size">${this.formatFileSize(file.size)}</div>
+                            </div>
+                        </div>
+                        <a href="${fileUrl}" download="${file.originalName}" class="download-btn" onclick="event.stopPropagation()">⬇ Download</a>
+                    </div>
+                </div>
+            `;
+            return element;
+        }
+    }
+    
+    getFileIcon(mimetype) {
+        const icons = {
+            'application/pdf': '📄',
+            'text/plain': '📝',
+            'application/msword': '📄',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '📄',
+            'application/zip': '📦'
+        };
+        return icons[mimetype] || '📎';
+    }
+    
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    preserveWhitespace(text) {
+        return text.replace(/ /g, '\u00A0').replace(/\t/g, '\u0009');
+    }
+    
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 }
 

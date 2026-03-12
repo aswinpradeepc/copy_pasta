@@ -8,6 +8,9 @@ A lightweight, real-time chat application perfect for homelab use. Features logi
 - **Real-time Sync**: Messages instantly sync across all connected devices
 - **Multi-device Support**: Each device gets a unique identifier
 - **Copy-Paste Friendly**: Click any message to copy it to clipboard
+- **Code Indentation Support**: Preserves indentation in code snippets and formatted text
+- **File & Image Sharing**: Upload and share files with preview functionality
+- **Optional Message Logging**: Configure whether to persist messages to disk
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
 - **Lightweight**: Minimal dependencies and resource usage
 - **Memory Efficient**: Keeps only last 100 messages in memory
@@ -23,7 +26,9 @@ A lightweight, real-time chat application perfect for homelab use. Features logi
    Edit `.env` file and set your secure password:
    ```
    CHAT_PASSWORD=your_secure_password_here
-   PORT=3000
+   PORT=3111
+   ENABLE_MESSAGE_LOGGING=true
+   JWT_SECRET=your_jwt_secret_key
    ```
 
 3. **Start the server**:
@@ -47,6 +52,10 @@ A lightweight, real-time chat application perfect for homelab use. Features logi
 4. Messages sync in real-time across all connected devices
 5. Click any message to copy it to the clipboard
 6. Device type and partial ID shown in header
+7. **File Sharing**: Click the 📎 button to attach files (images, PDFs, documents, ZIP files)
+8. **File Limits**: Maximum 10MB per file, 5 files per message
+9. **Supported Formats**: Images (JPG, PNG, GIF, WebP), PDF, TXT, Word docs, ZIP
+10. **Download**: Click the download button on any shared file to save it
 
 ## Security Notes
 
@@ -59,7 +68,25 @@ A lightweight, real-time chat application perfect for homelab use. Features logi
 
 - `CHAT_PASSWORD`: Authentication password (required)
 - `PORT`: Server port (default: 3111)
+- `ENABLE_MESSAGE_LOGGING`: Whether to persist messages to disk (default: true)
 - `JWT_SECRET`: JWT signing secret (auto-generated if not set)
+- `MAX_FILE_SIZE`: Maximum file size in bytes (default: 10485760 = 10MB)
+
+### Message Logging Control
+
+Set `ENABLE_MESSAGE_LOGGING=false` to disable message persistence. When disabled:
+- Messages are only stored in memory
+- Messages are lost when the server restarts
+- Search functionality only works on current session messages
+- No message files are created on disk
+
+### File Sharing Configuration
+
+- **File Size Limit**: 10MB per file (configurable via MAX_FILE_SIZE)
+- **Files Per Message**: Maximum 5 files
+- **Storage Location**: Files are stored in `/uploads` directory
+- **Security**: File type validation and size limits enforced
+- **Cleanup**: Consider implementing automated cleanup for old files
 
 ## Tech Stack
 

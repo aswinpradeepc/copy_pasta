@@ -6,6 +6,8 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const fs = require('fs').promises;
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,6 +20,47 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3111;
 const CHAT_PASSWORD = process.env.CHAT_PASSWORD;
+const ENABLE_MESSAGE_LOGGING = process.env.ENABLE_MESSAGE_LOGGING !== 'false';
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+
+// File upload configuration
+const storage = multer.diskStorage({
+    destination: async (req, file, cb) => {
+        await fs.mkdir(UPLOAD_DIR, { recursive: true });
+        cb(null, UPLOAD_DIR);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const name = path.basename(file.originalname, ext);
+        const timestamp = Date.now();
+        const random = crypto.randomBytes(4).toString('hex');
+        cb(null, `${name}_${timestamp}_${random}${ext}`);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: MAX_FILE_SIZE,
+        files: 5 // Maximum 5 files per upload
+    },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'application/pdf',
+            'text/plain',
+            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/zip'
+        ];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type'), false);
+        }
+    }
+});
 
 // File-based message storage
 const MESSAGES_DIR = path.join(__dirname, 'messages');
@@ -29,8 +72,10 @@ let currentFileIndex = 0;
 // Ensure messages directory exists
 async function ensureMessagesDir() {
     try {
-        await fs.mkdir(MESSAGES_DIR, { recursive: true });
-        await loadLatestMessages();
+        if (ENABLE_MESSAGE_LOGGING) {
+            await fs.mkdir(MESSAGES_DIR, { recursive: true });
+            await loadLatestMessages();
+        }
     } catch (error) {
         console.error('Error creating messages directory:', error);
     }
@@ -72,7 +117,7 @@ async function loadLatestMessages() {
 // Save messages to file
 async function saveMessagesToFile() {
     try {
-        if (messages.length === 0) return;
+        if (!ENABLE_MESSAGE_LOGGING || messages.length === 0) return;
         
         const fileName = `messages_${currentFileIndex}.json`;
         const filePath = path.join(MESSAGES_DIR, fileName);
@@ -97,6 +142,13 @@ async function rotateMessageFile() {
 // Search messages across all files
 async function searchMessages(keyword) {
     try {
+        if (!ENABLE_MESSAGE_LOGGING) {
+            // If logging is disabled, search only in memory
+            return messages.filter(msg => 
+                msg.text.toLowerCase().includes(keyword.toLowerCase())
+            );
+        }
+        
         const files = await fs.readdir(MESSAGES_DIR);
         const messageFiles = files.filter(f => f.startsWith('messages_') && f.endsWith('.json'));
         let allResults = [];
@@ -135,6 +187,7 @@ const loginLimiter = rateLimit({
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // JWT Secret (use a more secure secret in production)
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
@@ -153,6 +206,34 @@ app.post('/login', loginLimiter, (req, res) => {
     } else {
         res.status(401).json({ error: 'Invalid password' });
     }
+});
+
+// File upload route
+app.post('/upload', upload.array('files', 5), (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'No files uploaded' });
+        }
+        
+        const uploadedFiles = req.files.map(file => ({
+            originalName: file.originalname,
+            filename: file.filename,
+            size: file.size,
+            mimetype: file.mimetype,
+            url: `/uploads/${file.filename}`
+        }));
+        
+        res.json({ files: uploadedFiles });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ error: 'Upload failed' });
+    }
+});
+
+// File download route
+app.get('/uploads/:filename', (req, res) => {
+    const filePath = path.join(UPLOAD_DIR, req.params.filename);
+    res.sendFile(filePath);
 });
 
 // Socket.IO authentication middleware
@@ -186,19 +267,20 @@ io.on('connection', (socket) => {
             id: messageIdCounter++,
             text: data.text,
             deviceId: data.deviceId,
-            timestamp: data.timestamp || new Date().toISOString()
+            timestamp: data.timestamp || new Date().toISOString(),
+            files: data.files || null
         };
         
         messages.push(message);
         
         // Rotate file if we've reached the limit
-        if (messages.length >= MESSAGES_PER_FILE) {
+        if (ENABLE_MESSAGE_LOGGING && messages.length >= MESSAGES_PER_FILE) {
             await saveMessagesToFile();
             await rotateMessageFile();
         }
         
         // Auto-save every 10 messages
-        if (messages.length % 10 === 0) {
+        if (ENABLE_MESSAGE_LOGGING && messages.length % 10 === 0) {
             await saveMessagesToFile();
         }
         
@@ -250,7 +332,9 @@ server.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received, shutting down gracefully');
-    await saveMessagesToFile();
+    if (ENABLE_MESSAGE_LOGGING) {
+        await saveMessagesToFile();
+    }
     server.close(() => {
         console.log('Process terminated');
     });
@@ -258,7 +342,9 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
     console.log('SIGINT received, shutting down gracefully');
-    await saveMessagesToFile();
+    if (ENABLE_MESSAGE_LOGGING) {
+        await saveMessagesToFile();
+    }
     server.close(() => {
         console.log('Process terminated');
     });
