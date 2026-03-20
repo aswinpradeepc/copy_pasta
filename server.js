@@ -12,9 +12,13 @@ const { exec } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : [];
+
 const io = socketIo(server, {
     cors: {
-        origin: ["https://schat.aswinpradeepc.com", "http://localhost:3111"],
+        origin: ALLOWED_ORIGINS,
         methods: ["GET", "POST"]
     }
 });
@@ -327,6 +331,34 @@ app.post('/api/update', (req, res) => {
     console.log('Update API triggered. Executing update.sh...');
     res.json({ message: 'Update initiated successfully' });
     
+    exec('bash update.sh', (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Update script error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.warn(`Update script stderr: ${stderr}`);
+        }
+        console.log(`Update script output: ${stdout}`);
+    });
+});
+
+// Auto-update endpoint
+app.post('/api/update', (req, res) => {
+    const apiKey = req.headers['x-api-key'] || req.body.apiKey;
+    
+    if (!DEPLOY_API_KEY) {
+        return res.status(500).json({ error: 'Server configuration error: DEPLOY_API_KEY not set' });
+    }
+    
+    if (apiKey !== DEPLOY_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
+    }
+    
+    console.log('Update API triggered. Executing update.sh...');
+    res.json({ message: 'Update initiated successfully' });
+    
+    // Using 'bash update.sh' explicitly doesn't require executable bits (+x)
     exec('bash update.sh', (error, stdout, stderr) => {
         if (error) {
             console.error(`Update script error: ${error.message}`);
