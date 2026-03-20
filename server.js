@@ -8,6 +8,7 @@ const fs = require('fs').promises;
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const crypto = require('crypto');
+const { exec } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
@@ -20,6 +21,7 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3111;
 const CHAT_PASSWORD = process.env.CHAT_PASSWORD;
+const DEPLOY_API_KEY = process.env.DEPLOY_API_KEY;
 const ENABLE_MESSAGE_LOGGING = process.env.ENABLE_MESSAGE_LOGGING !== 'false';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
@@ -307,6 +309,33 @@ io.on('connection', (socket) => {
     
     socket.on('error', (error) => {
         console.error('Socket error:', error);
+    });
+});
+
+// Auto-update endpoint
+app.post('/api/update', (req, res) => {
+    const apiKey = req.headers['x-api-key'] || req.body.apiKey;
+    
+    if (!DEPLOY_API_KEY) {
+        return res.status(500).json({ error: 'Server configuration error: DEPLOY_API_KEY not set' });
+    }
+    
+    if (apiKey !== DEPLOY_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid API Key' });
+    }
+    
+    console.log('Update API triggered. Executing update.sh...');
+    res.json({ message: 'Update initiated successfully' });
+    
+    exec('bash update.sh', (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Update script error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.warn(`Update script stderr: ${stderr}`);
+        }
+        console.log(`Update script output: ${stdout}`);
     });
 });
 
