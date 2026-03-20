@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: officelab
     steps:
       - name: Trigger Server Update Webhook
         run: |
