@@ -178,6 +178,7 @@ body {
 #chat-container {
     flex-direction: column;
     padding: 0;
+    position: relative;
 }
 
 .chat-header {
@@ -289,6 +290,37 @@ body {
 
 .message:hover .copy-hint {
     opacity: 1;
+}
+
+.floating-btn {
+    position: absolute;
+    bottom: 90px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #007acc;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: all 0.3s ease;
+    opacity: 1;
+}
+
+.floating-btn:hover {
+    background-color: #005a9e;
+    transform: translateY(-2px);
+}
+
+.floating-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
 }
 
 .input-container {
@@ -539,6 +571,10 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .copy-hint::after {
+        content: " (Long press)";
+    }
+    
     .chat-header {
         padding: 0.75rem;
         flex-wrap: wrap;

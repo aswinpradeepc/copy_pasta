@@ -77,6 +77,28 @@ class ChatApp {
             });
         }
 
+        // Scroll to bottom button
+        const messagesContainer = document.querySelector('.messages-container');
+        const scrollBtn = document.getElementById('scroll-bottom-btn');
+        
+        if (messagesContainer && scrollBtn) {
+            messagesContainer.addEventListener('scroll', () => {
+                const isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 100;
+                if (isNearBottom) {
+                    scrollBtn.classList.add('hidden');
+                } else {
+                    scrollBtn.classList.remove('hidden');
+                }
+            });
+            
+            scrollBtn.addEventListener('click', () => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            });
+        }
+
         // Message input auto-focus and auto-resize
         const messageInput = document.getElementById('message-input');
         if (messageInput) {
@@ -280,6 +302,10 @@ class ChatApp {
 
     displayMessage(message, container = null) {
         const messagesContainer = container || document.getElementById('messages');
+        const scrollContainer = document.querySelector('.messages-container');
+        
+        const isNearBottom = scrollContainer ? (scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 150) : true;
+        
         const messageEl = document.createElement('div');
         messageEl.className = 'message';
         messageEl.dataset.messageId = message.id;
@@ -308,26 +334,60 @@ class ChatApp {
             ${messageContent}
             <div class="message-meta">
                 <span>${dateStr} ${timeStr}</span>
-                <span class="copy-hint">Tap to copy</span>
+                <span class="copy-hint">Copy</span>
             </div>
         `;
 
-        // Handle both click and touch events for mobile compatibility
-        const copyHandler = (e) => {
-            // Don't trigger copy if clicking on file elements
-            if (e.target.closest('.message-files') || e.target.closest('.download-btn')) {
+        let isTouch = false;
+        let pressTimer;
+
+        // Mobile long press logic
+        const startPress = (e) => {
+            isTouch = true;
+            if (e.target.closest('.message-files') || e.target.closest('.download-btn')) return;
+            pressTimer = window.setTimeout(() => {
+                this.copyMessage(message.text, messageEl);
+                if (navigator.vibrate) navigator.vibrate(50);
+            }, 500); // 500ms for long press
+        };
+
+        const cancelPress = () => {
+            if (pressTimer) clearTimeout(pressTimer);
+        };
+
+        messageEl.addEventListener('touchstart', startPress, { passive: true });
+        messageEl.addEventListener('touchend', cancelPress);
+        messageEl.addEventListener('touchmove', cancelPress, { passive: true });
+        messageEl.addEventListener('touchcancel', cancelPress);
+        
+        messageEl.addEventListener('contextmenu', (e) => {
+            if (e.target.closest('.message-files') || e.target.closest('.download-btn')) return;
+            if (isTouch) {
+                e.preventDefault(); // Prevent native context menu on long press on mobile
+            }
+        });
+
+        // Desktop click logic
+        messageEl.addEventListener('click', (e) => {
+            if (e.target.closest('.message-files') || e.target.closest('.download-btn')) return;
+            
+            // On mobile we rely on long press, so ignore clicks triggered by touch
+            if (isTouch) {
+                // reset isTouch so that if they use mouse later on the same device it works
+                setTimeout(() => { isTouch = false; }, 500); 
                 return;
             }
+            
             e.preventDefault();
             this.copyMessage(message.text, messageEl);
-        };
-        
-        messageEl.addEventListener('click', copyHandler);
-        messageEl.addEventListener('touchstart', copyHandler);
+        });
         
         messagesContainer.appendChild(messageEl);
-        if (!container) {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        if (!container && scrollContainer) {
+            const isFromMe = message.deviceId === this.deviceId;
+            if (isFromMe || isNearBottom) {
+                scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            }
         }
     }
 
@@ -336,6 +396,11 @@ class ChatApp {
         messagesContainer.innerHTML = '';
         
         messages.forEach(message => this.displayMessage(message));
+        
+        const scrollContainer = document.querySelector('.messages-container');
+        if (scrollContainer) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
     }
 
     async copyMessage(text, element) {
@@ -377,12 +442,14 @@ class ChatApp {
         // Visual feedback
         element.classList.add(success ? 'copied' : 'copy-failed');
         const copyHint = element.querySelector('.copy-hint');
-        copyHint.textContent = success ? 'Copied!' : 'Copy failed';
-        
-        setTimeout(() => {
-            element.classList.remove('copied', 'copy-failed');
-            copyHint.textContent = 'Tap to copy';
-        }, 2000);
+        if (copyHint) {
+            copyHint.textContent = success ? 'Copied!' : 'Copy failed';
+            
+            setTimeout(() => {
+                element.classList.remove('copied', 'copy-failed');
+                copyHint.textContent = 'Copy';
+            }, 2000);
+        }
     }
 
     handleSearch() {
