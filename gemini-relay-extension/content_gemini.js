@@ -10,18 +10,29 @@ function findSubmitBtn() {
     return document.querySelector('button[aria-label="Send message"]') || document.querySelector('.send-button');
 }
 
+async function simulatePasting(input, text) {
+    input.focus();
+    
+    // Simulate time taken to "read" the prompt from the other window
+    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 1500) + 1000));
+
+    // Inserting large blocks of text as a single action acts just like a user doing Ctrl+V.
+    // Typing single characters rapidly often breaks the complex rich-text editor state in modern web apps.
+    document.execCommand('insertText', false, text);
+
+    // Simulate time taken to move mouse to the send button and click
+    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 800) + 400));
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'RECEIVE_FROM_COPYPASTA') {
         console.log("Gemini Relay: Received from copypasta", request.text);
         const input = findInput();
         if (input) {
-            input.focus();
-            document.execCommand('insertText', false, request.text);
-            
-            setTimeout(() => {
+            simulatePasting(input, request.text).then(() => {
                 const btn = findSubmitBtn();
                 if (btn) btn.click();
-            }, 500);
+            });
         } else {
              console.log("Gemini Relay: Gemini input not found!");
         }
