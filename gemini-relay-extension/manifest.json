@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini Relay",
+  "version": "1.0",
+  "description": "Relays messages between Gemini and schat.aswinpradeepc.com",
+  "permissions": ["storage", "tabs", "scripting"],
+  "host_permissions": [
+    "*://gemini.google.com/*",
+    "*://schat.aswinpradeepc.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://gemini.google.com/*"],
+      "js": ["content_gemini.js"]
+    },
+    {
+      "matches": ["*://schat.aswinpradeepc.com/*"],
+      "js": ["content_copypasta.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
