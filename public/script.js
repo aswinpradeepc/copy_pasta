@@ -34,6 +34,12 @@ class ChatApp {
             logoutBtn.addEventListener('click', () => this.handleLogout());
         }
 
+        // New chat button
+        const newChatBtn = document.getElementById('new-chat-btn');
+        if (newChatBtn) {
+            newChatBtn.addEventListener('click', () => this.handleNewChat());
+        }
+
         // Search form
         const searchBtn = document.getElementById('search-btn');
         const clearSearchBtn = document.getElementById('clear-search-btn');
@@ -165,6 +171,14 @@ class ChatApp {
         this.showLogin();
     }
 
+    handleNewChat() {
+        if (confirm('Are you sure you want to start a new chat? This will clear the current chat for everyone.')) {
+            if (this.socket) {
+                this.socket.emit('clear_chat');
+            }
+        }
+    }
+
     showLogin() {
         document.getElementById('login-container').classList.remove('hidden');
         document.getElementById('chat-container').classList.add('hidden');
@@ -226,6 +240,13 @@ class ChatApp {
 
         this.socket.on('search_results', (results) => {
             this.displaySearchResults(results);
+        });
+
+        this.socket.on('chat_cleared', () => {
+            const messagesContainer = document.getElementById('messages');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '';
+            }
         });
     }
 

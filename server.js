@@ -307,6 +307,19 @@ io.on('connection', (socket) => {
         socket.emit('messages', messages);
     });
     
+    // Handle clear chat request
+    socket.on('clear_chat', async () => {
+        if (ENABLE_MESSAGE_LOGGING && messages.length > 0) {
+            await saveMessagesToFile();
+            await rotateMessageFile();
+        } else {
+            messages = [];
+            messageIdCounter = 1;
+        }
+        io.emit('chat_cleared');
+        console.log(`Chat cleared by ${socket.deviceId}`);
+    });
+    
     socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.deviceId}`);
     });

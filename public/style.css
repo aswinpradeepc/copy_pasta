@@ -207,6 +207,27 @@ body {
     border-radius: 12px;
 }
 
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+#new-chat-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.3s ease;
+}
+
+#new-chat-btn:hover {
+    background: #218838;
+}
+
 #logout-btn {
     background: #dc3545;
     color: white;
